@@ -213,7 +213,7 @@ class Move:
 
     def getKingMoves(self):
         moves = []
-        direction = [(1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        direction = [(1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)]   # king near king not possible
         for (i,j) in direction:
             newRow = self.__row + i
             newCol = self.__col + j

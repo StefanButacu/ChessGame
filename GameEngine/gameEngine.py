@@ -6,11 +6,12 @@ darkColor = (184, 139, 74)
 lightColor = (227, 193, 111)
 activeColor = (225, 120, 98)
 futureColor = (234, 161, 145)
+white = (255, 255, 255)
 
 
 class Game:
     def __init__(self):
-        self.width = 800
+        self.width = 1200
         self.height = 800
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.fill((0, 0, 0))
@@ -27,12 +28,9 @@ class Game:
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ]
         self.__currentPlayer = 'w'
-        self.__whiteLostPieces = []
-        self.__blackLostPieces = []
-
-
 
     def drowGrid(self):
+
         for x in range(8):
             for y in range(8):
                 rect = pygame.Rect(x * 100, y * 100, 100, 100)
@@ -60,12 +58,44 @@ class Game:
     def highlightSquare(self, row, col):
         pygame.draw.rect(self.screen, activeColor, pygame.Rect(col * 100, row * 100, 100, 100), 5, 5, 5, 5)
 
+    def getStrTimeFromSecond(self, seconds):
+        mins = seconds // 60
+        seconds = seconds % 60
+        return "{}:{}".format(mins, seconds)
+
     def run(self):
-        self.drowGrid()
         sqList = []
         nextMoves = []
+
+        self.drowGrid()
+        font = pygame.font.SysFont('Consolas', 30)
+
+        playerOneText = font.render("Player 1", True, white)
+        playerOneRect = playerOneText.get_rect()
+        playerOneRect.center = (1000, 600)
+        playerTwoText = font.render("Player 2", True, white)
+        playerTwoRect = playerTwoText.get_rect()
+        playerTwoRect.center = (1000, 200)
+
+        clockPlayerOne = pygame.time.Clock()
+        timePlayerOne, textPlayerOne = 600, self.getStrTimeFromSecond(600)
+        #   font = pygame.font.SysFont('Consolas', 30)
+
+        clockPlayerTwo = pygame.time.Clock()
+        timePlayerTwo, textPlayerTwo = 600, self.getStrTimeFromSecond(600)
+
+        pygame.time.set_timer(pygame.USEREVENT, 1000)
         while True:
+            self.screen.blit(playerOneText, playerOneRect)
+            self.screen.blit(playerTwoText, playerTwoRect)
             for event in pygame.event.get():
+                if event.type == pygame.USEREVENT:
+                    if self.__currentPlayer == 'w':
+                        timePlayerOne -= 1
+                        textPlayerOne = self.getStrTimeFromSecond(timePlayerOne) if timePlayerOne > 0 else "GAME OVER"
+                    else:
+                        timePlayerTwo -= 1
+                        textPlayerTwo = self.getStrTimeFromSecond(timePlayerTwo) if timePlayerTwo > 0 else "GAME OVER"
                 if event.type == pygame.QUIT:
                     return
                 if event.type == pygame.KEYDOWN:
@@ -78,13 +108,15 @@ class Game:
                     pos = pygame.mouse.get_pos()
                     col = pos[0] // 100
                     row = pos[1] // 100
+                    if col >= 8 or row >= 8:
+                        continue
                     sqSelected = (row, col)
                     if len(sqList) == 0:
                         # highlight current square
                         if self.__board[row][col][0] == self.__currentPlayer and self.__board[row][col] != '--':
                             self.highlightSquare(row, col)
                             sqList.append(sqSelected)
-                            nextMoves = self.possibleMoves(row, col)
+                            nextMoves = self.possibleMovesByPiece(row, col)
                             for (newRow, newCol) in nextMoves:
                                 self.highlightSquare(newRow, newCol)
                         else:
@@ -96,11 +128,6 @@ class Game:
                         sqList.append(sqSelected)
                         if sqSelected in nextMoves:
                             # the the move             # presupun ca a apasat in ordinea care trebuie
-                            if self.__board[sqList[1][0]][sqList[1][1]] != '--': # we land on a piece
-                                if self.__currentPlayer == 'b':                   # magic numbers = BAD
-                                    self.__whiteLostPieces.append(self.__board[sqList[1][0]][sqList[1][1]])
-                                else:
-                                    self.__blackLostPieces.append(self.__board[sqList[1][0]][sqList[1][1]])
                             self.__board[sqList[1][0]][sqList[1][1]] = self.__board[sqList[0][0]][sqList[0][1]]
                             self.__board[sqList[0][0]][sqList[0][1]] = "--"
                             self.__currentPlayer = 'b' if self.__currentPlayer == 'w' else 'w'
@@ -118,28 +145,67 @@ class Game:
                         # un-highlight selected squares
                         self.placePieces()
                         sqList.clear()
+            self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
+            self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
+            pygame.display.flip()
+            if self.__currentPlayer == 'w':
+                clockPlayerOne.tick(60)
+            else:
+                clockPlayerTwo.tick(60)
             pygame.display.update()
 
-    def possibleMoves(self, row, col):
+                                    # allMoves mutable but changes weren't shown
+    def leaveKingUnderAttackValidation(self, pieceMoves, currentRow, currentCol, currentPiece):
+        for (newRow, newCol) in pieceMoves:
+            # hipotetically do the move
+            beforePiece = self.__board[newRow][newCol]
+            self.__board[newRow][newCol] = currentPiece
+            self.__board[currentRow][currentCol] = "--"
+            # self.__board[newRow][newCol], self.__board[row][col] = self.__board[row][col], "--"
+            # let s see if any enemy piece attaks the other king
+            if self.__currentPlayer == 'w':
+                # check for black pieces
+                for i in range(8):  # we can format this part
+                    for j in range(8):
+                        if self.__board[i][j][0] == 'b':
+                            attackerMove = Move(self.__board[i][j], i, j, self.__getWhiteKing(), self.__getBlackKing(),
+                                                self.__board)
+                            if self.__getWhiteKing() in attackerMove.getAllMoves():
+                                pieceMoves = [elems for elems in pieceMoves if elems != (newRow, newCol)] # list comperhensions works better at removing
+            else:
+                for i in range(8):  # we can format this part
+                    for j in range(8):
+                        if self.__board[i][j][0] == 'w':
+                            attackerMove = Move(self.__board[i][j], i, j, self.__getWhiteKing(), self.__getBlackKing(),
+                                                self.__board)
+                            if self.__getBlackKing() in attackerMove.getAllMoves():
+                                pieceMoves = [elems for elems in pieceMoves if elems != (newRow, newCol)]
+            #undo the move
+            self.__board[newRow][newCol], self.__board[currentRow][currentCol] = beforePiece, currentPiece
+        return pieceMoves
+
+    def possibleMovesByPiece(self, row, col):
         currentPiece = self.__board[row][col]
-        move = Move(currentPiece, row, col,self.__getWhiteKing(), self.__getBlackKing(), self.__board)
-        allMoves = move.getAllMoves()
+        move = Move(currentPiece, row, col, self.__getWhiteKing(), self.__getBlackKing(), self.__board)
+        pieceMoves = move.getAllMoves()
         # from these moves i have to exclude the ones that puts currentPlay's king in check
         # executing a move -> board[allMoves[i][0][allMoves[i][1] = currentPiece
         #                     board[row][col] = --
-        return allMoves
+
+        # check if after moving a piece the king is under attack
+        pieceMoves = self.leaveKingUnderAttackValidation(pieceMoves, row, col, currentPiece)
+        return pieceMoves
 
     def __getWhiteKing(self):
         for i in range(8):
             for j in range(8):
                 if self.__board[i][j] == "wK":
-                    return (i,j)
+                    return i, j
         raise Exception()
 
     def __getBlackKing(self):
         for i in range(8):
             for j in range(8):
                 if self.__board[i][j] == "bK":
-                    return (i, j)
+                    return i, j
         raise Exception()
-
