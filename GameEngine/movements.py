@@ -1,5 +1,4 @@
 
-
 class Move:
     def __init__(self, piece, row, col, whiteKing, blackKing, board):
         self.__piece = piece
@@ -20,14 +19,6 @@ class Move:
             "N": self.getHorseMoves,
         }
         return allPosibleMoves[self.__piece[1]]()
-
-    def getValidMoves(self):
-        moves = self.getAllMoves()
-        for i in range(8):
-            for j in range(8):
-                if self.__player == "w":
-                    if self.__board[i][j][0] == "b":
-                        attackerMoves = Move(self.__board[i][j], i, j, self.__whiteKing, self.__blackKing).getAllMoves()
 
 
 
@@ -53,15 +44,15 @@ class Move:
                     moves.append((newRow, newCol))
         # for destroying enemy piece
         if self.__player == "b":
-            if self.__isInBoard(self.__row+1, self.__col-1) and self.__board[self.__row+1][self.__col - 1][0] == 'w':
-                moves.append((self.__row+1, self.__col - 1))
-            if self.__col  + 1 < 8 and self.__board[self.__row+1][self.__col  + 1][0] == 'w':
-                moves.append((self.__row+1, self.__col + 1))
+            if self.__isInBoard(self.__row +1, self.__col -1) and self.__board[self.__row +1][self.__col - 1][0] == 'w':
+                moves.append((self.__row +1, self.__col - 1))
+            if self.__col  + 1 < 8 and self.__board[self.__row +1][self.__col  + 1][0] == 'w':
+                moves.append((self.__row +1, self.__col + 1))
         if self.__player == "w":
-            if self.__col - 1 >= 0 and self.__board[self.__row-1][self.__col - 1][0] == 'b':
-                moves.append((self.__row-1, self.__col - 1))
-            if self.__col  + 1 < 8 and self.__board[self.__row-1][self.__col + 1][0] == 'b':
-                moves.append((self.__row-1, self.__col + 1))
+            if self.__col - 1 >= 0 and self.__board[self.__row -1][self.__col - 1][0] == 'b':
+                moves.append((self.__row -1, self.__col - 1))
+            if self.__col  + 1 < 8 and self.__board[self.__row -1][self.__col + 1][0] == 'b':
+                moves.append((self.__row -1, self.__col + 1))
         return moves
 
     def getHorseMoves(self):
@@ -214,16 +205,13 @@ class Move:
     def getKingMoves(self):
         moves = []
         direction = [(1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)]   # king near king not possible
-        for (i,j) in direction:
+        for (i ,j) in direction:
             newRow = self.__row + i
             newCol = self.__col + j
             if self.__isInBoard(newRow, newCol):
-                if self.__board[newRow][newCol] == "--":
-                    moves.append((newRow,newCol))
-                if self.__board[newRow][newCol][0] == self.__player:
-                    continue
-                else:
-                    moves.append((newRow,newCol))
+                if self.__board[newRow][newCol] == "--" or ( self.__board[newRow][newCol][0] != self.__player and self.__board[newRow][newCol][1] != "K"):
+                        moves.append((newRow, newCol))
+
         return moves
 
     def allValidMoves(self, moves):
