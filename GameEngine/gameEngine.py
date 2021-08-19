@@ -18,14 +18,14 @@ class Game:
         pygame.display.set_caption(("Chess"))
         pygame.display.flip()
         self.__board = [
-            ["bR", "bN", "bB", "bQ", "--", "bB", "bN", "bR"],
-            ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
+            ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
+            ["bp", "wp", "bp", "bp", "bp", "bp", "bp", "bp"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "bK", "--", "--", "--"],
+            ["--", "--", "bp", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "wp", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "wK", "--", "--"],
-            ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
-            ["wR", "wN", "wB", "wQ", "--", "wB", "wN", "wR"],
+            ["wp", "--", "--", "wp", "wp", "wp", "wp", "wp"],
+            ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ]
         self.__currentPlayer = 'w'
         self.__blackCheck = False
@@ -63,7 +63,9 @@ class Game:
 
     def getStrTimeFromSecond(self, seconds):
         mins = seconds // 60
-        seconds = seconds % 60
+        seconds %= 60
+        if seconds == 0:
+            return "{}:00".format(mins)
         return "{}:{}".format(mins, seconds)
 
     def run(self):
@@ -135,23 +137,18 @@ class Game:
                             sqList.clear()
                             continue
                     elif len(sqList) == 1:
-                        # i have 1 square of a piece
-                        # if there is a piece and has the same color as the current player
                         sqList.append(sqSelected)
 
-                        # if currentPlayer is in check you have to exit
-                        # 1 ) move the king
-                        # 2 ) capture the piece that attacks the king
-                        # 3 ) move one ally piece on the "path" to king    Works already
-
                         if self.__currentPlayer == 'w':
+                            if self.__whiteCheck == True:
+                                if self.__hasLegalMoves():
+                                    self.__whiteCheckCheck = False
+
+                        else:
                             if self.__blackCheck == True:
                                 if self.__hasLegalMoves():
                                     self.__blackCheck = False
-                        else:
-                            if self.__whiteCheck == True:
-                                if self.__hasLegalMoves():
-                                    self.__whiteCheck = False
+
 
                         # do the move
                         if sqSelected in nextMoves:
@@ -159,14 +156,53 @@ class Game:
                             self.__board[sqList[1][0]][sqList[1][1]] = self.__board[sqList[0][0]][
                                 sqList[0][1]]  # "magical number" should had encapsulated this
                             self.__board[sqList[0][0]][sqList[0][1]] = "--"
-                            enemyPiece = "b" if self.__currentPlayer == "w" else "w"
-
+                            # check for pawn promotion
+                            if self.__checkPawnPromotion(sqList[1][0],sqList[1][1]):
+                                self.__board[sqList[1][0]][sqList[1][1]] = "--"
+                                if self.__currentPlayer == "b":
+                                    pieces = ["bQ", "bR", "bB", "bN"]
+                                else:
+                                    pieces = ["wQ", "wR", "wB", "wN"]
+                                transformScale = ([20, 20], [20, 70], (70, 20), (70, 70))
+                                rect = pygame.Rect(col * 100, row * 100, 100, 100)
+                                if (col + row) % 2 == 0:
+                                    pygame.draw.rect(self.screen, lightColor, rect)
+                                else:
+                                    pygame.draw.rect(self.screen, darkColor, rect)
+                                for i in range(len(pieces)):
+                                    image = pygame.image.load("./images/" + pieces[i] + ".png").convert_alpha()
+                                    rect = image.get_rect()
+                                    rect.width = 45
+                                    rect.height = 45
+                                    rect.center = (col * 100 + transformScale[i][0], row * 100 + transformScale[i][1])
+                                    self.screen.blit(image, rect)
+                                    pygame.display.update()
+                                chosen = False
+                                while not chosen:
+                                    for event2 in pygame.event.get():
+                                        if event2.type == pygame.MOUSEBUTTONDOWN:
+                                            pos = pygame.mouse.get_pos()
+                                            col2 = pos[0] // 100
+                                            row2 = pos[1] // 100
+                                            if not (col <= col2 < col + 1 and row <= row2 < row +1 ) :
+                                                continue
+                                            else:
+                                                chosen = True
+                                                if pos[0] % 100 <= 50 and pos[1] % 100 <= 50:
+                                                    self.__board[row][col] = pieces[0]
+                                                elif pos[0] % 100 <= 50 and pos[1] % 100 >= 50:
+                                                    self.__board[row][col] = pieces[1]
+                                                elif pos[0] % 100 >= 50 and pos[1] % 100 <= 50:
+                                                    self.__board[row][col] = pieces[2]
+                                                elif pos[0] % 100 >= 50 and pos[1] % 100 >= 50:
+                                                    self.__board[row][col] = pieces[3]
+                            ######### ### might repaint all
                             if self.__currentPlayer == 'b':
-                                if self.__squareUnderAttack(self.__getWhiteKing(), enemyPiece):
+                                if self.__squareUnderAttack(self.__getWhiteKing(), "b"):
                                     self.__whiteCheck = True
-                                    print("white check")
+                                    print("white check") # ??
                             else:
-                                if self.__squareUnderAttack(self.__getBlackKing(), enemyPiece):
+                                if self.__squareUnderAttack(self.__getBlackKing(), "w"):
                                     self.__blackCheck = True
                                     print("black check")
                             self.__currentPlayer = 'b' if self.__currentPlayer == 'w' else 'w'
@@ -181,7 +217,7 @@ class Game:
                         sqList.clear()
             self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
             self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
-            pygame.display.flip()
+           # pygame.display.flip()
             if self.__currentPlayer == 'w':
                 clockPlayerOne.tick(60)
             else:
@@ -189,16 +225,25 @@ class Game:
             if self.__isStalemate():
                 gameOver = True
                 print(self.__currentPlayer, " lost by stalemate ")
-                return
+                # return
             elif self.__isCheckmate():
                 print(self.__currentPlayer, " lost by checkmate ")
-                return
+                # return
             # check Stalemate. When a player whose turn it is has no legal moves by any of his/her pieces, but is not in check.
             # check both Draw buttons are pressed
             # check if is checkmate ( cant exit check)
             pygame.display.update()
 
     def leaveKingUnderAttackValidation(self, pieceMoves, currentRow, currentCol, currentPiece):
+        """
+
+        :param pieceMoves: an array of (int,int) which represents posible moves of pieces
+        :param currentRow: int
+        :param currentCol: int
+        :param currentPiece: string, the piece
+        :return: an array of (int,int) but with the moves that are valid, meaning that you cant move a piece
+        and let your king to be under attack
+        """
         for (newRow, newCol) in pieceMoves:
             # hipotetically do the move
             beforePiece = self.__board[newRow][newCol]
@@ -229,25 +274,36 @@ class Game:
         return pieceMoves
 
     def possibleMovesByPiece(self, row, col):
+        """
+
+        :param row: int
+        :param col: int
+        :return: an array of (int,int) which represent the possible moves that could be done by the piece from the coordonates row,col
+        """
         currentPiece = self.__board[row][col]
         move = Move(currentPiece, row, col, self.__getWhiteKing(), self.__getBlackKing(), self.__board)
         pieceMoves = move.getAllMoves()
-        # from these moves i have to exclude the ones that puts currentPlay's king in check
-        # executing a move -> board[allMoves[i][0][allMoves[i][1] = currentPiece
-        #                     board[row][col] = --
+
 
         # check if after moving a piece the king is under attack
         pieceMoves = self.leaveKingUnderAttackValidation(pieceMoves, row, col, currentPiece)
         return pieceMoves
 
     def __getWhiteKing(self):
+        """
+
+        :return: (int,int) = coordonates of white king
+        """
         for i in range(8):
             for j in range(8):
                 if self.__board[i][j] == "wK":
                     return i, j
         raise Exception()
-
+    # could be only one function which can do both, by giving the parameter color getColorKing(self,color)
     def __getBlackKing(self):
+        """
+        :return: (int,int) = coordonates of black king
+        """
         for i in range(8):
             for j in range(8):
                 if self.__board[i][j] == "bK":
@@ -286,8 +342,29 @@ class Game:
             return False
 
     def __squareUnderAttack(self, square, enemyPiece):
-        # check by knight
+        """
+
+        :param square: (int, int) the coordonates of the square ( row, column)
+        :param enemyPiece: b/w
+        :return: True if the square is attacked by any enemy piece
+                False otherwise
+        """
         row, col = square
+
+        # check by pawm
+
+        if enemyPiece == "w":
+            directions = [(-1,-1), (-1, 1)]
+        else:
+            directions = [(1,1), (1, -1)]
+        for i, j in directions:
+            newRow = row + i
+            newCol = col + j
+            if 0 <= newRow < 8 and 0 <= newCol < 8:
+                if self.__board[newRow][newCol][0] == enemyPiece and self.__board[newRow][newCol][1] == "p":
+                    # enemy piece                                               # is a pawn
+                    return True
+        # check by knight
         directions = [(1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, -1), (2, 1)]
         for i, j in directions:
             newRow = row + i
@@ -320,7 +397,7 @@ class Game:
                     if self.__board[newRow][newCol][0] == enemyPiece:
                         if self.__board[newRow][newCol][1] == "Q" or self.__board[newRow][newCol][1] == "B":
                             return True
-                        if k == 1 and self.__board[newRow][newCol][1] == "p":  # can be attacked by pawn
+                        if k == 1 and self.__board[newRow][newCol][1] == "p":  # can be attacked by pawn depeding on color
                             return True
                     else:  # this path is blocked by an ally piece
                         break
@@ -339,6 +416,10 @@ class Game:
         return False
 
     def __computeAttackerSquares(self):
+        """
+
+        :return: a list of all attacked squares by the enemy player
+        """
         attackerMoves = []
         for i in range(8):
             for j in range(8):
@@ -346,4 +427,20 @@ class Game:
                     attackerMoves += Move(self.__board[i][j], i, j, self.__getWhiteKing(), self.__getBlackKing(),
                                           self.__board).getAllMoves()
         return attackerMoves
+
+    def __checkPawnPromotion(self, row, col):
+        """
+        Check if a pawn cand be promoted and promotes it to a piece
+        :param row: int
+        :param col: int
+        :return:
+        """
+        if self.__board[row][col][1] == 'p':
+            if self.__currentPlayer == "w" and row == 0:
+                return True
+            elif self.__currentPlayer =="b" and row == 7:
+                return True
+        return False
+
+
 ## if one of current moves blocks the check
