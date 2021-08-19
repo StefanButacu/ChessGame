@@ -4,10 +4,10 @@ from GameEngine.movements import Move
 
 darkColor = (184, 139, 74)
 lightColor = (227, 193, 111)
-activeColor = (225, 120, 98)
+activeColor = (244, 162, 97)
 futureColor = (234, 161, 145)
 white = (255, 255, 255)
-
+textColor = (188, 57, 8)
 
 class Game:
     def __init__(self):
@@ -19,12 +19,12 @@ class Game:
         pygame.display.flip()
         self.__board = [
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
-            ["bp", "wp", "bp", "bp", "bp", "bp", "bp", "bp"],
+            ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "bp", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "wp", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["wp", "--", "--", "wp", "wp", "wp", "wp", "wp"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ]
         self.__currentPlayer = 'w'
@@ -64,8 +64,6 @@ class Game:
     def getStrTimeFromSecond(self, seconds):
         mins = seconds // 60
         seconds %= 60
-        if seconds == 0:
-            return "{}:00".format(mins)
         return "{}:{}".format(mins, seconds)
 
     def run(self):
@@ -93,6 +91,14 @@ class Game:
         while True:
             self.screen.blit(playerOneText, playerOneRect)
             self.screen.blit(playerTwoText, playerTwoRect)
+            if self.__isStalemate():
+                gameOver = True
+                self.__printScreenMessage(" Draw by stalemate ")
+               # break
+            elif self.__isCheckmate():
+                message = "Black" if self.__currentPlayer == "b" else "White"
+                self.__printScreenMessage(message + " lost by checkmate ")
+                #break
 
             for event in pygame.event.get():
                 if event.type == pygame.USEREVENT:
@@ -149,7 +155,6 @@ class Game:
                                 if self.__hasLegalMoves():
                                     self.__blackCheck = False
 
-
                         # do the move
                         if sqSelected in nextMoves:
                             # the the move if is not in check
@@ -157,7 +162,7 @@ class Game:
                                 sqList[0][1]]  # "magical number" should had encapsulated this
                             self.__board[sqList[0][0]][sqList[0][1]] = "--"
                             # check for pawn promotion
-                            if self.__checkPawnPromotion(sqList[1][0],sqList[1][1]):
+                            if self.__checkPawnPromotion(sqList[1][0], sqList[1][1]):
                                 self.__board[sqList[1][0]][sqList[1][1]] = "--"
                                 if self.__currentPlayer == "b":
                                     pieces = ["bQ", "bR", "bB", "bN"]
@@ -184,7 +189,7 @@ class Game:
                                             pos = pygame.mouse.get_pos()
                                             col2 = pos[0] // 100
                                             row2 = pos[1] // 100
-                                            if not (col <= col2 < col + 1 and row <= row2 < row +1 ) :
+                                            if not (col <= col2 < col + 1 and row <= row2 < row + 1):
                                                 continue
                                             else:
                                                 chosen = True
@@ -200,7 +205,7 @@ class Game:
                             if self.__currentPlayer == 'b':
                                 if self.__squareUnderAttack(self.__getWhiteKing(), "b"):
                                     self.__whiteCheck = True
-                                    print("white check") # ??
+                                    print("white check")  # ??
                             else:
                                 if self.__squareUnderAttack(self.__getBlackKing(), "w"):
                                     self.__blackCheck = True
@@ -217,18 +222,12 @@ class Game:
                         sqList.clear()
             self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
             self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
-           # pygame.display.flip()
+            # pygame.display.flip()
             if self.__currentPlayer == 'w':
                 clockPlayerOne.tick(60)
             else:
                 clockPlayerTwo.tick(60)
-            if self.__isStalemate():
-                gameOver = True
-                print(self.__currentPlayer, " lost by stalemate ")
-                # return
-            elif self.__isCheckmate():
-                print(self.__currentPlayer, " lost by checkmate ")
-                # return
+
             # check Stalemate. When a player whose turn it is has no legal moves by any of his/her pieces, but is not in check.
             # check both Draw buttons are pressed
             # check if is checkmate ( cant exit check)
@@ -284,7 +283,6 @@ class Game:
         move = Move(currentPiece, row, col, self.__getWhiteKing(), self.__getBlackKing(), self.__board)
         pieceMoves = move.getAllMoves()
 
-
         # check if after moving a piece the king is under attack
         pieceMoves = self.leaveKingUnderAttackValidation(pieceMoves, row, col, currentPiece)
         return pieceMoves
@@ -299,6 +297,7 @@ class Game:
                 if self.__board[i][j] == "wK":
                     return i, j
         raise Exception()
+
     # could be only one function which can do both, by giving the parameter color getColorKing(self,color)
     def __getBlackKing(self):
         """
@@ -352,11 +351,11 @@ class Game:
         row, col = square
 
         # check by pawm
-
+        allyPiece = "b" if enemyPiece == "w" else "w"
         if enemyPiece == "w":
-            directions = [(-1,-1), (-1, 1)]
+            directions = [(-1, -1), (-1, 1)]
         else:
-            directions = [(1,1), (1, -1)]
+            directions = [(1, 1), (1, -1)]
         for i, j in directions:
             newRow = row + i
             newCol = col + j
@@ -380,7 +379,7 @@ class Game:
                 newRow = row + i * k
                 newCol = col + j * k
                 if 0 <= newRow < 8 and 0 <= newCol < 8:
-                    if self.__board[newRow][newCol][0] == enemyPiece:
+                    if self.__board[newRow][newCol][0] != allyPiece:
                         if self.__board[newRow][newCol][1] == "Q" or self.__board[newRow][newCol][1] == "R":
                             return True
                     else:  # this path is blocked by an ally piece
@@ -394,10 +393,11 @@ class Game:
                 newRow = row + i * k
                 newCol = col + j * k
                 if 0 <= newRow < 8 and 0 <= newCol < 8:
-                    if self.__board[newRow][newCol][0] == enemyPiece:
+                    if self.__board[newRow][newCol][0] != allyPiece:
                         if self.__board[newRow][newCol][1] == "Q" or self.__board[newRow][newCol][1] == "B":
                             return True
-                        if k == 1 and self.__board[newRow][newCol][1] == "p":  # can be attacked by pawn depeding on color
+                        if k == 1 and self.__board[newRow][newCol][
+                            1] == "p":  # can be attacked by pawn depeding on color
                             return True
                     else:  # this path is blocked by an ally piece
                         break
@@ -438,9 +438,24 @@ class Game:
         if self.__board[row][col][1] == 'p':
             if self.__currentPlayer == "w" and row == 0:
                 return True
-            elif self.__currentPlayer =="b" and row == 7:
+            elif self.__currentPlayer == "b" and row == 7:
                 return True
         return False
 
+    def __printScreenMessage(self, message):
+        """
+        Show the message on screen
+        :param message:
+        :return:
+        """
+        font = pygame.font.SysFont('Consolas', 30)
+        font.set_bold(True)
+        text = font.render(message, False, textColor)
+        rect = pygame.Rect(300, 300, 500, 500)
+        rect.center = (550, 600)
+
+        textLocation = rect
+
+        self.screen.blit(text, textLocation)
 
 ## if one of current moves blocks the check
