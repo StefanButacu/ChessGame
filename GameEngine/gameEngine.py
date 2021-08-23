@@ -1,6 +1,7 @@
 import pygame
 
 from GameEngine.movements import Move
+from GameEngine.Button import Button
 
 darkColor = (184, 139, 74)
 lightColor = (227, 193, 111)
@@ -45,6 +46,14 @@ class Game:
                   "rR": False,
                   },
         }
+        self.__whiteDraw = False
+        self.__blackDraw = False
+        self.__whiteDrawButton = Button(self.screen, (990, 700), pygame.font.SysFont('Consolas', 30), "Draw")
+        self.__whiteDrawButton.showButton()
+        self.__blackDrawButton = Button(self.screen, (990, 300), pygame.font.SysFont('Consolas', 30), "Draw")
+        self.__blackDrawButton.showButton()
+        self.__timePlayerOne = 600
+        self.__timePlayerTwo = 600
 
     def drowGrid(self):
         """
@@ -113,6 +122,46 @@ class Game:
         seconds %= 60
         return "{}:{}".format(mins, seconds)
 
+    def __checkGameOver(self):
+        if self.__isStalemate():
+            self.__printScreenMessage(" Draw by stalemate ")
+            return True
+        elif self.__isCheckmate():
+            message = "Black" if self.__currentPlayer == "b" else "White"
+
+            self.__printScreenMessage(message + " lost by checkmate ")
+            return True
+        elif self.__isDraw():
+            message = "Draw agreed by both players"
+            self.__printScreenMessage(message)
+            return True
+        elif self.__isOutOfTime("w"):
+            message = "Player one run out of time"
+            self.__printScreenMessage(message)
+            return True
+        elif self.__isOutOfTime("b"):
+            message = "Player two run out of time"
+            self.__printScreenMessage(message)
+            return True
+        return False
+
+    def __isOutOfTime(self, player):
+        """
+
+        :param player: b or w  - the color of the player
+        :return: True -if the player has no more seconds
+        """
+        if player == "w":
+            if self.__timePlayerOne == 0:
+                return True
+        elif player == "b":
+            if self.__timePlayerTwo == 0:
+                return True
+        return False
+
+
+
+
     def run(self):
         """
         Main loop for game
@@ -133,34 +182,26 @@ class Game:
         playerTwoRect.center = (1000, 200)
 
         clockPlayerOne = pygame.time.Clock()
-        timePlayerOne, textPlayerOne = 600, self.getStrTimeFromSecond(600)
+        self.__timePlayerOne, textPlayerOne = 600, self.getStrTimeFromSecond(600)
         #   font = pygame.font.SysFont('Consolas', 30)
 
         clockPlayerTwo = pygame.time.Clock()
-        timePlayerTwo, textPlayerTwo = 600, self.getStrTimeFromSecond(600)
+        self.__timePlayerTwo, textPlayerTwo = 600, self.getStrTimeFromSecond(600)
         gameOver = False
         pygame.time.set_timer(pygame.USEREVENT, 1000)
         while True:
             self.screen.blit(playerOneText, playerOneRect)
             self.screen.blit(playerTwoText, playerTwoRect)
-            if self.__isStalemate():
-                gameOver = True
-                self.__printScreenMessage(" Draw by stalemate ")
-            # break
-            elif self.__isCheckmate():
-                message = "Black" if self.__currentPlayer == "b" else "White"
-                gameOver = True
-                self.__printScreenMessage(message + " lost by checkmate ")
-                # break
+            gameOver = self.__checkGameOver()
 
             for event in pygame.event.get():
                 if event.type == pygame.USEREVENT:
                     if self.__currentPlayer == 'w':
-                        timePlayerOne -= 1
-                        textPlayerOne = self.getStrTimeFromSecond(timePlayerOne) if timePlayerOne > 0 else "GAME OVER"
+                        self.__timePlayerOne -= 1
+                        textPlayerOne = self.getStrTimeFromSecond(self.__timePlayerOne) if self.__timePlayerOne > 0 else "GAME OVER"
                     else:
-                        timePlayerTwo -= 1
-                        textPlayerTwo = self.getStrTimeFromSecond(timePlayerTwo) if timePlayerTwo > 0 else "GAME OVER"
+                        self.__timePlayerTwo -= 1
+                        textPlayerTwo = self.getStrTimeFromSecond(self.__timePlayerTwo) if self.__timePlayerTwo > 0 else "GAME OVER"
                 if event.type == pygame.QUIT:
                     return
                 if event.type == pygame.KEYDOWN:
@@ -172,6 +213,12 @@ class Game:
                     pos = pygame.mouse.get_pos()
                     col = pos[0] // 100
                     row = pos[1] // 100
+                    if self.__currentPlayer == 'w':
+                        self.__checkDrawButton(self.__whiteDrawButton, pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+                    else:
+                        self.__checkDrawButton(self.__blackDrawButton, pygame.mouse.get_pos()[0],
+                                               pygame.mouse.get_pos()[1])
+
                     if col >= 8 or row >= 8:
                         continue
                     sqSelected = (row, col)
@@ -237,7 +284,7 @@ class Game:
                             if self.__blackCheck:
                                 if self.__hasLegalMoves():
                                     self.__blackCheck = False
-                        # Castling moves
+                        ############### # Castling moves ###########
 
                         # unhighlight the moves
                         for row, col in castleMoves:
@@ -271,7 +318,7 @@ class Game:
                             if not gameOver:  # to not overlap Pieces with the GameOver text
                                 self.placePieces()
                             sqList.clear()
-                        # do the move
+                        # NORMAL MOVES
                         elif sqSelected in nextMoves:
                             lastRow, lastCol = sqList[0][0], sqList[0][1]
                             newRow, newCol = sqList[1][0], sqList[1][1]
@@ -321,12 +368,12 @@ class Game:
                                             else:
                                                 chosen = True
                                                 if pos[0] % 100 <= 50 and pos[1] % 100 <= 50:
-                                                    self.__board[row][col] = pieces[0]   # Queen chosen
+                                                    self.__board[row][col] = pieces[0]  # Queen chosen
                                                 elif pos[0] % 100 <= 50 and pos[1] % 100 >= 50:
                                                     self.__board[row][col] = pieces[1]  # Rook chosen
                                                 elif pos[0] % 100 >= 50 and pos[1] % 100 <= 50:
-                                                    self.__board[row][col] = pieces[2] # Bishop chonsen
-                                                elif pos[0] % 100 >= 50 and pos[1] % 100 >= 50: # Knight chosen
+                                                    self.__board[row][col] = pieces[2]  # Bishop chonsen
+                                                elif pos[0] % 100 >= 50 and pos[1] % 100 >= 50:  # Knight chosen
                                                     self.__board[row][col] = pieces[3]
                                 # might repaint all
                             if self.__currentPlayer == 'b':
@@ -346,15 +393,15 @@ class Game:
                             self.unHighlightSquare(newRow, newCol)
                         # un-highlight selected squares
                         sqList.clear()
-            if not gameOver: # to not overlap Pieces with the GameOver text
+            if not gameOver:  # to not overlap Pieces with the GameOver text
                 self.placePieces()
 
-            self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
-            self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
-            if self.__currentPlayer == 'w':
-                clockPlayerOne.tick(60)
-            else:
-                clockPlayerTwo.tick(60)
+                self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
+                self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
+                if self.__currentPlayer == 'w':
+                    clockPlayerOne.tick(60)
+                else:
+                    clockPlayerTwo.tick(60)
             # check both Draw buttons are pressed
             # check if is checkmate ( cant exit check)
             pygame.display.update()
@@ -477,82 +524,8 @@ class Game:
         if square in self.__computeAttackerSquares(enemyColor):
             return True
         return False
-        """
-        row, col = square
-        directions = []
-        # check by pawm
-        allyPiece = "b" if enemyColor == "w" else "w"
-        if enemyColor == "w":
-            directions = [(-1, -1), (-1, 1)]
-        else:
-            directions = [(1, 1), (1, -1)]
-        for i, j in directions:
-            newRow = row + i
-            newCol = col + j
-            if 0 <= newRow < 8 and 0 <= newCol < 8:
-                if self.__board[newRow][newCol][0] == enemyColor and self.__board[newRow][newCol][1] == "p":
-                    # enemy piece                                               # is a pawn
-                    return True
-        # check by knight
-        directions = [(1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, -1), (2, 1)]
-        for i, j in directions:
-            newRow = row + i
-            newCol = col + j
-            if 0 <= newRow < 8 and 0 <= newCol < 8:
-                if self.__board[newRow][newCol][0] == enemyColor and self.__board[newRow][newCol][1] == "N":
-                    # enemy piece                                               # is a knight
-                    return True
 
-        directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-        for i, j in directions:
-            for k in range(1, 8):
-                newRow = row + i * k
-                newCol = col + j * k
-                if 0 <= newRow < 8 and 0 <= newCol < 8:  # delete condition with allyPiece
-                    if self.__board[newRow][newCol][0] == enemyColor:
-                        if self.__board[newRow][newCol][1] == "Q" or self.__board[newRow][newCol][1] == "R":
-                            print("attak by Q")
-                            return True
-                        else:
-                            break  # this is a piece enemy  but it s neither Queen or Rook
-                    elif self.__board[newRow][newCol][0] == allyPiece:
-                        # this path is blocked by a piece
-                        break
-                    else:
-                        continue # this path is empty
-                else:  # exits the board
-                    break
-        # bishop
-        directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
-        for i, j in directions:
-            for k in range(1, 8):
-                newRow = row + i * k
-                newCol = col + j * k
-                if 0 <= newRow < 8 and 0 <= newCol < 8:
-                    if self.__board[newRow][newCol][0] != allyPiece:  # there is a enemy piece
-                        if self.__board[newRow][newCol][1] == "Q" or self.__board[newRow][newCol][1] == "B":
-                            return True  # it queen or bishop
-                        elif k == 1 and self.__board[newRow][newCol][
-                            1] == "p":  # can be attacked by pawn depeding on color
-                            return True
-                        else:
-                            break  # its a enemy piece that blocks the path
-                    else:  # this path is blocked by ally piece
-                        break
-                else:  # exits the board
-                    break
-        # by king
-        direction = [(1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1),
-                     (0, -1)]
-        for (i, j) in direction:
-            newRow = row + i
-            newCol = col + j
-            if 0 <= newRow < 8 and 0 <= newCol < 8:
-                if self.__board[newRow][newCol][0] == enemyColor:
-                    if self.__board[newRow][newCol][1] == "K":
-                        return True
-        return False
-        """
+
     def __computeAttackerSquares(self, attacker):
         """
         attacker - "b/w" - the attacker
@@ -591,7 +564,7 @@ class Game:
         font.set_bold(True)
         text = font.render(message, False, textColor)
         rect = pygame.Rect(300, 300, 500, 500)
-        rect.center = (550, 600)
+        rect.center = (400, 600)
 
         textLocation = rect
 
@@ -694,5 +667,16 @@ class Game:
                 newPositions.append((0, 7))
         newPositions.append(lastKingPosition)
         return newPositions
+
+    def __checkDrawButton(self, drawButton, mouseX, mouseY):
+        if drawButton.rect.collidepoint(mouseX, mouseY):
+            if self.__currentPlayer == 'w':
+                self.__whiteDraw = True
+            else:
+                self.__blackDraw = True
+            drawButton.changeBackground()
+
+    def __isDraw(self):
+        return self.__whiteDraw and self.__blackDraw
 
 ## if one of current moves blocks the check

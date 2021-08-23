@@ -138,6 +138,10 @@ class Move:
 
     def getRookMoves(self):
         moves = []
+        # you can do this smarter by multiplying the amount of squares that a rook can move
+        # can move up to 8 squares: if there is an ally piece you end that direction
+        #                           if there is a enemy peice you add that move and then end direction
+        #                           if you exit the board before checking the maximum 8 squares
         # up
         newRow = self.__row - 1
         newCol = self.__col
