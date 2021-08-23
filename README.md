@@ -1,6 +1,6 @@
 # ChessGame
 Chess game developed using pygame
-### Relevant Pictures
+### Relevant Gameplay
 tbd
 ### Notes: 
 1. Don't start coding as soon as posible. Take time understanding your idea and adjacent conceps (difficult time with castling / en-passant, never heard of stalemate) 
