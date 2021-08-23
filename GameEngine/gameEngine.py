@@ -353,13 +353,11 @@ class Game:
                             if self.__board[lastRow][lastCol][1] == "K":
                                 self.__rookOrKingMoved[self.__currentPlayer]["K"] = True
                             elif self.__board[lastRow][lastCol] == "wR" or self.__board[lastRow][lastCol] == "bR":
-                                print("ROok move")
                                 if lastCol < 4:
                                     self.__rookOrKingMoved[self.__currentPlayer]["lR"] = True
                                 else:
                                     self.__rookOrKingMoved[self.__currentPlayer]["rR"] = True
-                            else:
-                                print("im stupid)", self.__board[lastRow][newCol])
+
                             # the the move if is not in check
                             self.__board[newRow][newCol] = self.__board[lastRow][
                                 lastCol]  # "magical numbers" should had encapsulated this
