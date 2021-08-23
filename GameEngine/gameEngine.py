@@ -52,8 +52,10 @@ class Game:
         self.__whiteDrawButton.showButton()
         self.__blackDrawButton = Button(self.screen, (990, 300), pygame.font.SysFont('Consolas', 30), "Draw")
         self.__blackDrawButton.showButton()
-        self.__timePlayerOne = 600
-        self.__timePlayerTwo = 600
+        self.__timePlayerOne = 900
+        self.__timePlayerTwo = 900
+        self.__enPassantSquare = ()
+
 
     def drowGrid(self):
         """
@@ -120,7 +122,7 @@ class Game:
 
         mins = seconds // 60
         seconds %= 60
-        return "{}:{}".format(mins, seconds)
+        return str(mins) + ":" + str(seconds)
 
     def __checkGameOver(self):
         if self.__isStalemate():
@@ -159,14 +161,12 @@ class Game:
                 return True
         return False
 
-
-
-
     def run(self):
         """
         Main loop for game
         :return:
         """
+
         sqList = []
         nextMoves = []
         castleMoves = []
@@ -177,44 +177,66 @@ class Game:
         playerOneText = font.render("Player 1", True, white)
         playerOneRect = playerOneText.get_rect()
         playerOneRect.center = (1000, 600)
+
         playerTwoText = font.render("Player 2", True, white)
         playerTwoRect = playerTwoText.get_rect()
         playerTwoRect.center = (1000, 200)
 
         clockPlayerOne = pygame.time.Clock()
-        self.__timePlayerOne, textPlayerOne = 600, self.getStrTimeFromSecond(600)
-        #   font = pygame.font.SysFont('Consolas', 30)
+        textPlayerOne = self.getStrTimeFromSecond(self.__timePlayerOne)
 
         clockPlayerTwo = pygame.time.Clock()
-        self.__timePlayerTwo, textPlayerTwo = 600, self.getStrTimeFromSecond(600)
+        textPlayerTwo = self.getStrTimeFromSecond(self.__timePlayerTwo)
+
+        self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
+        self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
+
         gameOver = False
         pygame.time.set_timer(pygame.USEREVENT, 1000)
         while True:
             self.screen.blit(playerOneText, playerOneRect)
+
             self.screen.blit(playerTwoText, playerTwoRect)
+
             gameOver = self.__checkGameOver()
 
             for event in pygame.event.get():
                 if event.type == pygame.USEREVENT:
                     if self.__currentPlayer == 'w':
                         self.__timePlayerOne -= 1
-                        textPlayerOne = self.getStrTimeFromSecond(self.__timePlayerOne) if self.__timePlayerOne > 0 else "GAME OVER"
+                        textPlayerOne = self.getStrTimeFromSecond(
+                            self.__timePlayerOne) if self.__timePlayerOne > 0 else "GAME OVER"
+                        # had to mask one 0 character that was exiting the surface
+                        self.screen.blit(font.render("------", True, pygame.Color("Black"), pygame.Color("Black")),
+                                         (950, 650))
+                        self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
+                        clockPlayerOne.tick(60)
+
                     else:
                         self.__timePlayerTwo -= 1
-                        textPlayerTwo = self.getStrTimeFromSecond(self.__timePlayerTwo) if self.__timePlayerTwo > 0 else "GAME OVER"
+                        textPlayerTwo = self.getStrTimeFromSecond(
+                            self.__timePlayerTwo) if self.__timePlayerTwo > 0 else "GAME OVER"
+                        self.screen.blit(font.render("------", True, pygame.Color("Black"), pygame.Color("Black")),
+                                         (950, 250))
+
+                        self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
+                        clockPlayerTwo.tick(60)
+
                 if event.type == pygame.QUIT:
                     return
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_p:
                         for row in self.__board:
                             print(row)
+                        print(self.__rookOrKingMoved)
 
                 if event.type == pygame.MOUSEBUTTONDOWN and not gameOver:
                     pos = pygame.mouse.get_pos()
                     col = pos[0] // 100
                     row = pos[1] // 100
                     if self.__currentPlayer == 'w':
-                        self.__checkDrawButton(self.__whiteDrawButton, pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+                        self.__checkDrawButton(self.__whiteDrawButton, pygame.mouse.get_pos()[0],
+                                               pygame.mouse.get_pos()[1])
                     else:
                         self.__checkDrawButton(self.__blackDrawButton, pygame.mouse.get_pos()[0],
                                                pygame.mouse.get_pos()[1])
@@ -293,12 +315,14 @@ class Game:
                             self.unHighlightSquare(row, col)
                         if sqSelected == castleSquare and self.__board[castleSquare[0]][
                             castleSquare[1]] != "--":  # we need to click the king if first is rook, or vice-versa
+                            print("castle move")
+
                             newKingRow, newKingCol = castleMoves[0]
                             newRookRow, newRookCol = castleMoves[1]
                             lastRookRow, lastRookCol = castleMoves[2]
                             lastKingRow, lastKingCol = castleMoves[3]
                             self.__rookOrKingMoved[self.__currentPlayer]["K"] = True
-                            if newRookCol < 4:
+                            if lastRookCol < 4:
                                 self.__rookOrKingMoved[self.__currentPlayer]["lR"] = True
                             else:
                                 self.__rookOrKingMoved[self.__currentPlayer]["rR"] = True
@@ -322,18 +346,25 @@ class Game:
                         elif sqSelected in nextMoves:
                             lastRow, lastCol = sqList[0][0], sqList[0][1]
                             newRow, newCol = sqList[1][0], sqList[1][1]
-                            # the the move if is not in check
-                            self.__board[newRow][newCol] = self.__board[lastRow][
-                                lastCol]  # "magical numbers" should had encapsulated this
-                            self.__board[lastRow][lastCol] = "--"
+                            # enPassantSquare - you you jump by 2 squares the one in the middle is en passantSquare
+
+
                             # check if he moved the king/rook => you can no longer do the castle
-                            if self.__board[newRow][newCol][1] == "K":
+                            if self.__board[lastRow][lastCol][1] == "K":
                                 self.__rookOrKingMoved[self.__currentPlayer]["K"] = True
-                            if self.__board[newRow][newRow][1] == "R":
+                            elif self.__board[lastRow][lastCol] == "wR" or self.__board[lastRow][lastCol] == "bR":
+                                print("ROok move")
                                 if lastCol < 4:
                                     self.__rookOrKingMoved[self.__currentPlayer]["lR"] = True
                                 else:
                                     self.__rookOrKingMoved[self.__currentPlayer]["rR"] = True
+                            else:
+                                print("im stupid)", self.__board[lastRow][newCol])
+                            # the the move if is not in check
+                            self.__board[newRow][newCol] = self.__board[lastRow][
+                                lastCol]  # "magical numbers" should had encapsulated this
+                            self.__board[lastRow][lastCol] = "--"
+
 
                             # check for pawn promotion
                             if self.__checkPawnPromotion(newRow, newCol):
@@ -396,14 +427,6 @@ class Game:
             if not gameOver:  # to not overlap Pieces with the GameOver text
                 self.placePieces()
 
-                self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
-                self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
-                if self.__currentPlayer == 'w':
-                    clockPlayerOne.tick(60)
-                else:
-                    clockPlayerTwo.tick(60)
-            # check both Draw buttons are pressed
-            # check if is checkmate ( cant exit check)
             pygame.display.update()
 
     def leaveKingUnderAttackValidation(self, pieceMoves, currentRow, currentCol, currentPiece):
@@ -524,7 +547,6 @@ class Game:
         if square in self.__computeAttackerSquares(enemyColor):
             return True
         return False
-
 
     def __computeAttackerSquares(self, attacker):
         """
