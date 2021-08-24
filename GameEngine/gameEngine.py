@@ -56,7 +56,6 @@ class Game:
         self.__timePlayerTwo = 900
         self.__enPassantSquare = ()
 
-
     def drowGrid(self):
         """
         Drows the chess grid
@@ -78,6 +77,7 @@ class Game:
         """
         for x in range(8):
             for y in range(8):
+
                 if self.__board[x][y] != "--":
                     image = pygame.image.load("./images/" + self.__board[x][y] + ".png").convert_alpha()
                     rect = image.get_rect()
@@ -167,6 +167,7 @@ class Game:
         :return:
         """
 
+        global arr
         sqList = []
         nextMoves = []
         castleMoves = []
@@ -202,25 +203,25 @@ class Game:
 
             for event in pygame.event.get():
                 if event.type == pygame.USEREVENT:
-                    if self.__currentPlayer == 'w':
-                        self.__timePlayerOne -= 1
-                        textPlayerOne = self.getStrTimeFromSecond(
-                            self.__timePlayerOne) if self.__timePlayerOne > 0 else "GAME OVER"
-                        # had to mask one 0 character that was exiting the surface
-                        self.screen.blit(font.render("------", True, pygame.Color("Black"), pygame.Color("Black")),
-                                         (950, 650))
-                        self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
-                        clockPlayerOne.tick(60)
+                    if not gameOver:
+                        if self.__currentPlayer == 'w':
+                            self.__timePlayerOne -= 1
+                            textPlayerOne = self.getStrTimeFromSecond(
+                                self.__timePlayerOne) if self.__timePlayerOne > 0 else "GAME OVER"
+                            # had to mask one 0 character that was exiting the surface
+                            self.screen.blit(font.render("------", True, pygame.Color("Black"), pygame.Color("Black")),
+                                             (950, 650))
+                            self.screen.blit(font.render(textPlayerOne, True, white, (0, 0, 0)), (950, 650))
+                            clockPlayerOne.tick(60)
+                        else:
+                            self.__timePlayerTwo -= 1
+                            textPlayerTwo = self.getStrTimeFromSecond(
+                                self.__timePlayerTwo) if self.__timePlayerTwo > 0 else "GAME OVER"
+                            self.screen.blit(font.render("------", True, pygame.Color("Black"), pygame.Color("Black")),
+                                             (950, 250))
 
-                    else:
-                        self.__timePlayerTwo -= 1
-                        textPlayerTwo = self.getStrTimeFromSecond(
-                            self.__timePlayerTwo) if self.__timePlayerTwo > 0 else "GAME OVER"
-                        self.screen.blit(font.render("------", True, pygame.Color("Black"), pygame.Color("Black")),
-                                         (950, 250))
-
-                        self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
-                        clockPlayerTwo.tick(60)
+                            self.screen.blit(font.render(textPlayerTwo, True, white, (0, 0, 0)), (950, 250))
+                            clockPlayerTwo.tick(60)
 
                 if event.type == pygame.QUIT:
                     return
@@ -249,45 +250,65 @@ class Game:
                         if self.__board[row][col][0] == self.__currentPlayer and self.__board[row][col] != '--':
                             self.highlightSquare(row, col)
                             sqList.append(sqSelected)
+
                             nextMoves = self.possibleMovesByPiece(row, col)
+
+                            # if is pawn need to prepare the enPassantMove
+
                             # if is rook or king add the "Castle Moves"
+                            # if you click left side of board
+                            # else you click right side and do that veirfications
+
+                            # daca apas pe rook - highlightuiesc mutarea specifica rook-ului ( stanga/dreapta)
+                            # altfel daca apas pe king (
+                            #
+
                             castleMoves.clear()
-                            if self.__board[row][col][1] == "K" or self.__board[row][col][1] == "R":
-                                kingLocation = self.__getWhiteKing() if self.__currentPlayer == "w" else self.__getBlackKing()
-                                if self.__castleValid(kingLocation, "left"):
-                                    castleMoves += self.__getCastleMoves("left")
-                                    if self.__currentPlayer == "w":
-                                        self.highlightSquare(7, 0)  # highlight left white Rook
-                                        self.highlightSquare(self.__getWhiteKing()[0],
-                                                             self.__getWhiteKing()[1])  # highlight white King
-                                        castleSquare = (7, 0) if self.__board[row][col][1] == "K" else kingLocation
-                                    else:
-                                        self.highlightSquare(0, 0)  # highlight left black Rook
-                                        self.highlightSquare(self.__getBlackKing()[0],
-                                                             self.__getBlackKing()[1])  # highlight black king
-                                        castleSquare = (0, 0) if self.__board[row][col][1] == "K" else kingLocation
-
-                                if self.__castleValid(kingLocation, "right"):
-                                    castleMoves += self.__getCastleMoves("right")
-                                    if self.__currentPlayer == "w":
-                                        self.highlightSquare(7, 7)  # highlight right white Rook
-                                        self.highlightSquare(self.__getWhiteKing()[0],
-                                                             self.__getWhiteKing()[1])  # highlight white King
-                                        castleSquare = (7, 7) if self.__board[row][col][1] == "K" else kingLocation
-
-                                    else:
-                                        self.highlightSquare(0, 7)  # highlight right black Rook
-                                        self.highlightSquare(self.__getBlackKing()[0],
-                                                             self.__getBlackKing()[1])  # highlight black king
-                                        castleSquare = (0, 7) if self.__board[row][col][1] == "K" else kingLocation
+                            arr = []  # if both castle are availabele castle squares are 2
 
                             if self.__board[row][col][1] == "K":
                                 # remove from nextMoves squares that are attacked by opponent's pieces
-                                ### you cant move the king in a square attacked by a piece
                                 enemyPiece = "b" if self.__currentPlayer == "w" else "w"
                                 for i in range(len(nextMoves) - 1, -1, -1):
                                     if self.__squareUnderAttack((nextMoves[i]), enemyPiece):
                                         del nextMoves[i]
+
+                                kingLocation = self.__getWhiteKing() if self.__currentPlayer == "w" else self.__getBlackKing() # (row,col)
+                                if self.__castleValid(kingLocation, "left"):
+                                    castleMoves.append(self.__getCastleMoves("left"))
+                                    if self.__currentPlayer == "w":
+                                        self.highlightSquare(7,
+                                                             0)  # highlight left white Rook if King was tapped - else highlight king
+                                        castleSquare = (7, 0) if self.__board[row][col][1] == "K" else kingLocation
+                                    else:
+                                        self.highlightSquare(0, 0)  # highlight left black Rook
+                                        castleSquare = (0, 0) if self.__board[row][col][1] == "K" else kingLocation
+                                    arr.append(castleSquare)
+                                if self.__castleValid(kingLocation, "right"):
+                                    castleMoves.append(self.__getCastleMoves("right"))
+                                    if self.__currentPlayer == "w":
+                                        self.highlightSquare(7,
+                                                             7)
+                                        castleSquare = (7, 7)
+                                    else:
+                                        self.highlightSquare(0, 7)  # highlight left black Rook
+                                        castleSquare = (0, 7)
+                                    arr.append(castleSquare)
+
+                            elif self.__board[row][col][1] == "R":
+                                kingLocation = self.__getWhiteKing() if self.__currentPlayer == "w" else self.__getBlackKing()
+                                if (row, col) == (0, 0) or (row, col) == (7, 0): # left rook
+                                    if self.__castleValid(kingLocation, "left"):
+                                        castleMoves.append(self.__getCastleMoves("left"))
+                                        self.highlightSquare(kingLocation[0], kingLocation[1])
+                                        castleSquare = kingLocation
+                                        arr.append(castleSquare)
+                                elif (row, col) == (0, 7) or (row, col) == (7, 7): # right rook
+                                    if self.__castleValid(kingLocation, "right"):
+                                        castleMoves.append(self.__getCastleMoves("right"))
+                                        self.highlightSquare(kingLocation[0], kingLocation[1])
+                                        castleSquare = kingLocation
+                                        arr.append(castleSquare)
 
                             for (newRow, newCol) in nextMoves:
                                 self.highlightSquare(newRow, newCol)
@@ -309,12 +330,21 @@ class Game:
                         ############### # Castling moves ###########
 
                         # unhighlight the moves
-                        for row, col in castleMoves:
-                            self.unHighlightSquare(row, col)
+                        for singleCastleMove in castleMoves:
+                            for row, col in singleCastleMove:
+                                self.unHighlightSquare(row, col)
                         for row, col in sqList:
                             self.unHighlightSquare(row, col)
-                        if sqSelected == castleSquare and self.__board[castleSquare[0]][
-                            castleSquare[1]] != "--":  # we need to click the king if first is rook, or vice-versa
+
+                        castleDo = False
+                        for i in range(len(arr)):
+                            if arr[i] == sqSelected and self.__board[arr[i][0]][arr[i][1]] and sqList[0] in castleMoves[
+                                i]:
+                                castleMoves = castleMoves[i]
+                                castleDo = True
+                                break
+
+                        if castleDo:  # we need to click the king if first is rook, or vice-versa
                             print("castle move")
 
                             newKingRow, newKingCol = castleMoves[0]
@@ -322,7 +352,7 @@ class Game:
                             lastRookRow, lastRookCol = castleMoves[2]
                             lastKingRow, lastKingCol = castleMoves[3]
                             self.__rookOrKingMoved[self.__currentPlayer]["K"] = True
-                            if lastRookCol < 4:
+                            if (lastRookRow, lastRookCol) == (7, 0) or (lastRookRow, lastRookCol) == (0, 0):
                                 self.__rookOrKingMoved[self.__currentPlayer]["lR"] = True
                             else:
                                 self.__rookOrKingMoved[self.__currentPlayer]["rR"] = True
@@ -347,13 +377,27 @@ class Game:
                             lastRow, lastCol = sqList[0][0], sqList[0][1]
                             newRow, newCol = sqList[1][0], sqList[1][1]
                             # enPassantSquare - you you jump by 2 squares the one in the middle is en passantSquare
+                            if self.__board[lastRow][lastCol][1] == 'p' and sqSelected == self.__enPassantSquare:
+                                if self.__currentPlayer == 'w':
+                                    self.__board[newRow + 1][newCol] = "--"  # you have to eat that pawn
 
+                                    self.unHighlightSquare(newRow+1,newCol)
+
+                                else:
+                                    self.__board[newRow - 1][newCol] = "--"
+                                    self.unHighlightSquare(newRow-1,newCol)
+
+                            if self.__board[lastRow][lastCol][1] == 'p' and abs(newRow - lastRow) == 2:
+                                self.__enPassantSquare = ((newRow + lastRow) // 2, lastCol)
+                            else:
+                                self.__enPassantSquare = ()
 
                             # check if he moved the king/rook => you can no longer do the castle
                             if self.__board[lastRow][lastCol][1] == "K":
                                 self.__rookOrKingMoved[self.__currentPlayer]["K"] = True
                             elif self.__board[lastRow][lastCol] == "wR" or self.__board[lastRow][lastCol] == "bR":
-                                if lastCol < 4:
+                                if (lastRow, lastCol) == (7, 0) or (lastRow, lastCol) == (
+                                        0, 0):  # the left side specific
                                     self.__rookOrKingMoved[self.__currentPlayer]["lR"] = True
                                 else:
                                     self.__rookOrKingMoved[self.__currentPlayer]["rR"] = True
@@ -362,7 +406,6 @@ class Game:
                             self.__board[newRow][newCol] = self.__board[lastRow][
                                 lastCol]  # "magical numbers" should had encapsulated this
                             self.__board[lastRow][lastCol] = "--"
-
 
                             # check for pawn promotion
                             if self.__checkPawnPromotion(newRow, newCol):
@@ -474,7 +517,8 @@ class Game:
         :return: an array of (int,int) which represent the possible moves that could be done by the piece from the coordonates row,col
         """
         currentPiece = self.__board[row][col]
-        move = Move(currentPiece, row, col, self.__getWhiteKing(), self.__getBlackKing(), self.__board)
+        move = Move(currentPiece, row, col, self.__getWhiteKing(), self.__getBlackKing(), self.__board,
+                    self.__enPassantSquare)
         pieceMoves = move.getAllMoves()
 
         # check if after moving a piece the king is under attack
