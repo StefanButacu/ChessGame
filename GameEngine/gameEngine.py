@@ -345,7 +345,6 @@ class Game:
                                 break
 
                         if castleDo:  # we need to click the king if first is rook, or vice-versa
-                            print("castle move")
 
                             newKingRow, newKingCol = castleMoves[0]
                             newRookRow, newRookCol = castleMoves[1]
@@ -600,8 +599,22 @@ class Game:
         for i in range(8):
             for j in range(8):
                 if self.__board[i][j] != "--" and self.__board[i][j][0] == attacker:
-                    attackerMoves += Move(self.__board[i][j], i, j, self.__getWhiteKing(), self.__getBlackKing(),
-                                          self.__board).getAllMoves()
+                    if self.__board[i][j][1] == "p": # the only piece that attacks different that its moves
+                        pawnMoves = Move(self.__board[i][j], i, j, self.__getWhiteKing(), self.__getBlackKing(),
+                                              self.__board).getAllMoves() # moving and attacking
+                        # from here i have to remove the moving squares
+                        for k in range(len(pawnMoves)-1, -1, -1):
+
+                            if pawnMoves[k][1] == j:  # if the next move is on the same column as my pawn means is a move
+                                                    # not an attack
+                                del pawnMoves[k]
+                        attackerMoves += pawnMoves
+
+                    else:
+                        attackerMoves += Move(self.__board[i][j], i, j, self.__getWhiteKing(), self.__getBlackKing(),
+                                              self.__board).getAllMoves()
+                    # if its a pawn i have to remove the +1/-1 moves
+
         return attackerMoves
 
     def __checkPawnPromotion(self, row, col):

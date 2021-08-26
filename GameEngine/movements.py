@@ -1,5 +1,5 @@
 class Move:
-    def __init__(self, piece, row, col, whiteKing, blackKing, board, enPassantSquare = ()):
+    def __init__(self, piece, row, col, whiteKing, blackKing, board, enPassantSquare = (), attakingPawn = False):
         self.__piece = piece
         self.__row = row
         self.__col = col
@@ -8,6 +8,7 @@ class Move:
         self.__whiteKing = whiteKing
         self.__blackKing = blackKing
         self.__enPassantSquare = enPassantSquare
+        self.__attackinkPawn = attakingPawn
 
     ################ YOU CANT MOVE SOMETHING THAT WILL LET YOUR KING IN CHECK
     def getAllMoves(self):
