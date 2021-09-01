@@ -450,11 +450,11 @@ class Game:
                             if self.__currentPlayer == 'b':
                                 if self.__squareUnderAttack(self.__getWhiteKing(), "b"):
                                     self.__whiteCheck = True
-                                    print("white check")
+                                   #  print("white check")
                             else:
                                 if self.__squareUnderAttack(self.__getBlackKing(), "w"):
                                     self.__blackCheck = True
-                                    print("black check")
+                                    # print("black check")
                             self.__currentPlayer = 'b' if self.__currentPlayer == 'w' else 'w'
 
                         # un-highlight selected squares
