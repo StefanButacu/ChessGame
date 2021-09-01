@@ -2,7 +2,6 @@
 Chess game developed using pygame
 - use "pip install pygame" and run main.py! Enjoy beating your friends at the greatest mind sport 
 ### Relevant Gameplay
-* Start game
 ![Start game](https://github.com/StefanButacu/ChessGame/blob/master/pictures/start.JPG)
 * Possible moves ![Possible moves]https://github.com/StefanButacu/ChessGame/blob/master/pictures/HighlightMoves.JPG)
 * Castling ![Castling]https://github.com/StefanButacu/ChessGame/blob/master/pictures/Castling.JPG)
