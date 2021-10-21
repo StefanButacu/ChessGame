@@ -1,5 +1,6 @@
 # ChessGame
 Chess game developed using pygame
+- use "python get-pip.py" 
 - use "pip install pygame" and run main.py! Enjoy beating your friends at the greatest mind sport 
 ### Relevant Gameplay
 * Start game 
